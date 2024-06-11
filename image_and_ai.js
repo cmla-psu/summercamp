@@ -4,20 +4,28 @@ require('@tensorflow/tfjs-node')
 const TeachableMachine = require('@sashido/teachablemachine-node');
 
 module.exports = {
+    inputDataState: false,
     imagesize_x:  224,
     imagesize_y:  224,
-    colormap:  new Map([
-        ['0', [0xe8, 0x14, 0x16]], //red
-        ['1', [0xff, 0xa5, 0x00]], //orange
-        ['2', [0xfa, 0xeb, 0x36]], //yellow
-        ['3', [0x79, 0xc3, 0x14]], //green
-        ['4', [0x48, 0x7d, 0xe7]], //blue
-        ['5', [0x4b, 0x36, 0x9d]], //indigo
-        ['6', [0x70, 0x36, 0x9d]], //violet
-        ['7', [0x00, 0x00, 0x00]], //black
-        ['8', [0xff, 0xff, 0xff]], //white
-        ['9', [0xbd, 0x9e, 0x84]], //brown
-        ['a', [0xb7, 0xd1, 0xd5]], //gray
+    colormap:  new Map([  //r g b alpha
+        ['unknown', [0x00, 0x00, 0x00, 0]], //unknown is clear
+        ['air', [0x00, 0x00, 0x00, 0]], //air is clear
+        ['white', [0xff, 0xff, 0xff, 255]], 
+        ['orange', [0xff, 0xa5, 0x00, 255]], 
+        ['magenta', [0xff, 0x00, 0xff, 255]],
+        ['lightBlue', [0xad, 0xd8, 0xe6, 255]], 
+        ['yellow', [0xff, 0xff, 0x00, 255]], 
+        ['lime', [0x32, 0xcd, 0x32, 255]], 
+        ['pink', [0xff, 0xc0, 0xcb, 255]], 
+        ['gray', [0x80, 0x80, 0x80, 255]], 
+        ['lightGray', [0xd3, 0xd3, 0xd3, 255]],
+        ['cyan', [0x00, 0xff, 0xff, 255]], 
+        ['purple', [0xa0, 0x20, 0xf0, 255]], 
+        ['blue', [0x00, 0x00, 0xff, 255]], 
+        ['brown', [0x96, 0x4b, 0x00, 255]], 
+        ['green', [0x00, 0xff, 0x00, 255]], 
+        ['red', [0xff, 0x00, 0x00, 255]], 
+        ['black', [0x00, 0x00, 0x00, 255]], 
     ]),
     bitmapToDataURI(thestring) {
       //lines are separated by commas, colors within a line are separated by spaces
@@ -31,7 +39,7 @@ module.exports = {
          let myimage = new pnglib(this.imagesize_x, this.imagesize_y, depth)
          let palette = new Map()
          for(item of this.colormap) {
-             palette.set(item[0], myimage.color(item[1][0], item[1][1], item[1][2], 255))
+             palette.set(item[0], myimage.color(item[1][0], item[1][1], item[1][2], item[1][3]))
          }
          for(y=0; y<this.imagesize_y; y++) {
              for(x=0; x<this.imagesize_x; x++) {
@@ -49,23 +57,24 @@ module.exports = {
       }
       return datauri
     },
-    classify(modelname, bitmapString, onsuccess, onerror) {
+    classify(bitmapString, onsuccess, onerror) {
         // on success gets the array of predictions as a callback
         // on error gets an error message
-        let modeluri = `https://teachablemachine.withgoogle.com/models/${modelname.trim()}/`
         let datauri = this.bitmapToDataURI(bitmapString)
         if(datauri === undefined) {
-            onerror("Image datat is not valid.")
+            onerror("Image data is not valid.")
+        } else if (this.TheDrawing.tmModel === null) {
+          onerror("Model name is not specified.");
         } else {
-          let model = new TeachableMachine({modelUrl: modeluri})
-          model.classify({
+          this.savePNG(datauri, `image_${this.TheDrawing.drawNumber}.png`)
+          this.TheDrawing.tmModel.classify({
               imageUrl: datauri,
           }).then((predictions) => {
               onsuccess(predictions)
           }).catch((e) => {
               var error = "Can't classify, something went wrong.";
               if(e.includes("Loading model")) {
-                error = `The model ${modelname} name might be wrong.`
+                error = `The model name might be wrong.`
               } 
               onerror(error)
         })};
@@ -97,5 +106,57 @@ module.exports = {
              console.log("This is not a data uri for a PNG")
          }
     },
+
+    TheDrawing:  {
+       modelName: null,
+       tmModel: null,
+       drawNumber: 0,
+       height: 0,
+       width: 0,
+       data: [],
+       clear() {
+           this.height = 0;
+           this.width = 0;
+           this.data = [];
+       },
+       setModel(m) {
+           if(m === this.modelName) {
+               // no need to do anything
+           } else {
+              this.modelName = m;
+              let modeluri = `https://teachablemachine.withgoogle.com/models/${this.modelName.trim()}/`
+              this.tmModel = new TeachableMachine({modelUrl: modeluri})
+           }
+       },
+       setSize(h,w) {
+           this.height = h;
+           this.width = w;
+       },
+       addRow(r) {
+           let toPieces = r.split(/\W+/);
+           this.data[this.data.length] = toPieces;
+       },
+       makeString() {
+           let cleandata = [];
+           for(i=0; i<this.height; i++) {
+               cleandata[i] = [];
+               if(typeof(this.data[i]) === 'object') {
+                   for(j=0; j<this.width; j++) {
+                        if(typeof(this.data[i][j]) === 'string') {
+                             cleandata[i][j] = this.data[i][j]
+                        } else {
+                             cleandata[i][j] = "air"
+                        }
+                   }
+               } else {
+                   for(j=0; j<this.width; j++) {
+                       cleandata[i][j] = "air";
+                   }
+               }
+
+           }
+           return cleandata.map(x => x.join(" ")).join(",")
+       }
+    }
 }
 

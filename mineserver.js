@@ -155,11 +155,33 @@ wsserver.on('connection', socket => {
 
 function handlePlayerMessage(info) {
     let sender = info.body.sender;
-    let message = info.body.message;
+    let fullMessage = info.body.message;
+    let possibleHeader = `[${sender}]`;
+    let message = fullMessage;
+    if(fullMessage.startsWith(possibleHeader)) {
+        message = fullMessage.slice(possibleHeader.length).trim()
+    } 
     if(sender !== "teacher") {
-        if(message.startsWith("classify")) {
-            classify(message, sender)
+        if(message.startsWith("AIEND")) {
+            ImageAI.inputDataState = false;
+            let theimagedata = ImageAI.TheDrawing.makeString();
+            classify(theimagedata, sender);
+        } else if(message.startsWith("AISTART")) {
+            ImageAI.inputDataState = true;
+            ImageAI.TheDrawing.clear();
+            ImageAI.TheDrawing.drawNumber += 1;
+            let pieces = message.split(/\W+/);
+            let themodel = pieces[1].trim()// .slice(0, -1); //the colon gets removed by the split
+            let height = parseInt(pieces[2]);
+            let width = parseInt(pieces[3]);
+            ImageAI.TheDrawing.setModel(themodel);
+            ImageAI.TheDrawing.setSize(height, width);
+        } else if(ImageAI.inputDataState) {
+            ImageAI.TheDrawing.addRow(message);
         }
+        //if(message.startsWith("classify")) {
+        //    classify(message, sender)
+        //}
         //mineCommand = JSON.stringify("/say chat command from wsserver");
         //theJobs.enqueue(mineCommand)
     }
@@ -228,12 +250,8 @@ setTimeout(housekeeping, statusPeriod)
  * Set up custom interactions
  **************************************/
 
-function classify(commandstring, username) {
-   let info = commandstring.slice("classify".length)
-   let parts = info.split(":")
-   let model = parts[0].trim()
-   let bitmap = parts[1]
-   ImageAI.classify(model, bitmap, (predictions) => {
+function classify(bitmapstring, username) {
+   ImageAI.classify(bitmapstring, (predictions) => {
        let best = ImageAI.argmax(predictions)
        let cmddata = `/tell ${username} Classified as ${best[0]} with score ${best[1]}.`
        theJobs.enqueue(createMineChatCommand(cmddata))

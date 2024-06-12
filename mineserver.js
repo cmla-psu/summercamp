@@ -170,6 +170,8 @@ function handlePlayerMessage(info) {
             ImageAI.inputDataState = false;
             let theimagedata = ImageAI.TheDrawing.makeString();
             classify(theimagedata, sender);
+        } else if(message.startsWith("AICLEAR")) {
+            ImageAI.TheDrawing.clearai = true;
         } else if(message.startsWith("AISTART")) {
             ImageAI.inputDataState = true;
             ImageAI.TheDrawing.clear();

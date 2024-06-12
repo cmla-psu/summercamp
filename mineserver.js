@@ -17,13 +17,17 @@ const ImageAI = require('./image_and_ai.js');
 
 
 const statusPeriod = 10_000
-const ip = os.networkInterfaces()["wlp170s0"][0]["address"]
-const promptString = `cmd:> `
+//const ip = os.networkInterfaces()["wlp170s0"][0]["address"]
+const ip = "127.0.0.1"
+const promptString = `minecraft:> `
+/*
 if (process.argv.length !== 3) {
   console.error('Port is not specified on command line');
   process.exit(1);
 }
-const port = Number(process.argv[2])
+*/
+//const port = Number(process.argv[2])
+const port = 8080
 let verbose = true
 
 function cleanup() {

@@ -111,6 +111,7 @@ module.exports = {
        modelName: null,
        tmModel: null,
        drawNumber: 0,
+       clearai: false,
        height: 0,
        width: 0,
        data: [],
@@ -120,13 +121,17 @@ module.exports = {
            this.data = [];
        },
        setModel(m) {
+           if(this.clearai) {
+               this.modelName = null;
+           }
            if(m === this.modelName) {
-               // no need to do anything
+               // do nothing
            } else {
               this.modelName = m;
               let modeluri = `https://teachablemachine.withgoogle.com/models/${this.modelName.trim()}/`
               this.tmModel = new TeachableMachine({modelUrl: modeluri})
            }
+           this.clearai = false;
        },
        setSize(h,w) {
            this.height = h;

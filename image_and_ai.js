@@ -1,6 +1,6 @@
 const fs = require('fs');
 const pnglib = require('pnglib');
-require('@tensorflow/tfjs-node')
+require('@tensorflow/tfjs')
 const TeachableMachine = require('@sashido/teachablemachine-node');
 
 module.exports = {
